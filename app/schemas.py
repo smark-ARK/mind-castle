@@ -1,5 +1,7 @@
 from pydantic import BaseModel, EmailStr
+from enum import Enum
 from typing import Optional, List
+from datetime import datetime
 
 
 # * User Schemas
@@ -9,7 +11,6 @@ class UserBase(BaseModel):
 
 
 class UserCreate(UserBase):
-    id: int
     password: str
 
     class config:
@@ -33,33 +34,29 @@ class TokenData(BaseModel):
     user_id: Optional[int] = None
 
 
-# * Category Schemas
-class CategoryBase(BaseModel):
-    name: str
-    user_id: int
-
-
-class CategoryResponse(CategoryBase):
-    id: int
-    user: UserBase
-
-    class config:
-        orm_mode = True
-
-
 # * Notes Schemas
 class NoteBase(BaseModel):
     title: str
     detail: str
-    category_id: Optional[int] = None
 
 
 class NoteResponse(NoteBase):
     id: int
-    category: Optional[CategoryResponse]
-    owner: UserResponse
+    owner_id: int
+    created_at: datetime
 
 
-# class ShareNote(BaseModel):
-#     user_id: int
-#     permission:
+class Permissions(str, Enum):
+    read_only = "read_only"
+    edit = "edit"
+
+
+class ShareNote(BaseModel):
+    user_id: int
+    permission: Permissions = Permissions.read_only
+
+
+class ShareNoteResponse(BaseModel):
+    note: NoteResponse
+    user: UserResponse
+    permission: str
