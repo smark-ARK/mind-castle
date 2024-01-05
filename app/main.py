@@ -33,9 +33,9 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         )
 
 
-bucket = TokenBucket(capacity=15, refill_rate=2)
+bucket = TokenBucket(capacity=50, refill_rate=5)
 
-# app.add_middleware(RateLimitMiddleware, bucket=bucket)
+app.add_middleware(RateLimitMiddleware, bucket=bucket)
 
 
 app.include_router(auth.router)

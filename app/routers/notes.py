@@ -18,7 +18,7 @@ from app.schemas import (
 from app.database import get_db
 from app.models import Note, User, SharedNotes
 
-router = APIRouter(prefix="/notes", tags=["Notes"])
+router = APIRouter(prefix="/api/notes", tags=["Notes"])
 
 
 @router.get("", response_model=List[NoteResponse])

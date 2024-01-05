@@ -11,7 +11,7 @@ from app.utils import hash_password, verify_password
 from app.oauth2 import create_access_token, create_refresh_token, verify_refresh_token
 
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 
 
 @router.post("/signup", response_model=UserResponse)
