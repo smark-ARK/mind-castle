@@ -18,7 +18,7 @@ router = APIRouter(prefix="/api/auth", tags=["Authentication"])
 async def signup(user: UserCreate, db: Session = Depends(get_db)):
     user.password = hash_password(plain_password=user.password)
     try:
-        new_user = User(**user.dict())
+        new_user = User(**user.model_dump())
         db.add(new_user)
         db.commit()
         db.refresh(new_user)

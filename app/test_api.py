@@ -153,6 +153,44 @@ def test_get_note_with_auth():
     assert "created_at" in response.json()["note"]
 
 
+# Search for notes with a valid query
+def test_search_notes_valid_query(user_id=1, username="testuser"):
+    access_token = generate_valid_access_token(user_id, username)
+    response = client.get(
+        "/api/notes/search?q=test", headers={"Authorization": f"Bearer {access_token}"}
+    )
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
+
+
+# Search for notes with an empty query
+def test_search_notes_empty_query(user_id=1, username="testuser"):
+    access_token = generate_valid_access_token(user_id, username)
+    response = client.get(
+        "/api/notes/search", headers={"Authorization": f"Bearer {access_token}"}
+    )
+    assert response.status_code == 200
+    assert isinstance(response.json(), list)
+
+
+# Search for notes without authentication
+def test_search_notes_without_authentication(user_id=1, username="testuser"):
+    access_token = generate_valid_access_token(user_id, username)
+    response = client.get("/api/notes/search?q=test", headers={})
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
+# Search for notes with an invalid token
+def test_search_notes_invalid_token(user_id=1, username="testuser"):
+    access_token = generate_valid_access_token(user_id, username)
+    response = client.get(
+        "/api/notes/search?q=test", headers={"Authorization": f"Bea {access_token}"}
+    )
+    assert response.status_code == 401
+    assert response.json()["detail"] == "Not authenticated"
+
+
 def test_update_note():
     user_id = 1
     username = "testuser"

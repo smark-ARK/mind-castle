@@ -128,7 +128,7 @@ async def create_note(
     current_user: User = Depends(get_current_user),
 ):
     try:
-        new_note = Note(**note.dict(), owner_id=current_user.id)
+        new_note = Note(**note.model_dump(), owner_id=current_user.id)
         db.add(new_note)
         db.commit()
         db.refresh(new_note)
@@ -171,7 +171,7 @@ async def update_note(
         delattr(updated_note, "owner_id")
 
     # Update the note
-    note_query.update(updated_note.dict(), synchronize_session=False)
+    note_query.update(updated_note.model_dump(), synchronize_session=False)
     db.commit()
 
     return note_query.first()
@@ -216,7 +216,7 @@ async def share_note(
             status_code=status.HTTP_404_NOT_FOUND,
         )
     try:
-        shared = SharedNotes(**share_note.dict(), note_id=id)
+        shared = SharedNotes(**share_note.model_dump(), note_id=id)
         db.add(shared)
         db.commit()
     except Exception as e:
