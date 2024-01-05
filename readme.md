@@ -12,8 +12,7 @@ Mind Castle is an API that allows users to create, manage, and share notes secur
 - [API Endpoints](#api-endpoints)
 - [Testing](#testing)
 - [Documentation](#documentation)
-- [Contributing](#contributing)
-- [License](#license)
+- [Technology Stack Selection and Rationale](#technology-stack-selection-and-rationale)
 
 ## Features
 - **User Authentication:** Users can sign up, log in, and refresh their access tokens securely.
@@ -29,7 +28,7 @@ Mind Castle is an API that allows users to create, manage, and share notes secur
 
 ## Setup
 
-## Example .env Structure
+### Example .env Structure
 
 Create a .env file at the root of your project with the following structure:
 
