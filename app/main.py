@@ -1,15 +1,41 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request, HTTPException, status
+from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
-
+from starlette.middleware.base import BaseHTTPMiddleware, DispatchFunction
+from starlette.types import ASGIApp
 
 from .database import engine
-from app import models
+from app.models import Base
 from app.routers import auth, notes
+from app.utils import TokenBucket
 
 
 app = FastAPI()
 
 # models.Base.metadata.create_all(bind=engine)
+
+
+class RateLimitMiddleware(BaseHTTPMiddleware):
+    def __init__(self, app: ASGIApp, bucket: TokenBucket) -> None:
+        super().__init__(app)
+        self.bucket = bucket
+
+    async def dispatch(self, request: Request, call_next):
+        if self.bucket.take_token():
+            return await call_next(request)
+        error_response = JSONResponse(
+            content={"detail": "Rate Limit Exceeded"},
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+        raise HTTPException(
+            detail="Rate Limit Exceeded",
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+        )
+
+
+bucket = TokenBucket(capacity=15, refill_rate=2)
+
+# app.add_middleware(RateLimitMiddleware, bucket=bucket)
 
 
 app.include_router(auth.router)

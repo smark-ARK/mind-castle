@@ -1,0 +1,38 @@
+services:
+  postgres-mind-castle:
+    image: postgres:14.2
+    container_name: mind-castle-db
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: mind-castle
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+  postgres-test-mind-castle:
+    image: postgres:14.2
+    container_name: mind-castle-test-db
+    env_file:
+      - .env
+    environment:
+      POSTGRES_DB: test-mind-castle
+    volumes:
+      - postgres_data_test:/var/lib/postgresql/data
+  app:
+    build: .
+    container_name: mind-castle-backend
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres-mind-castle:
+          condition: service_started
+          restart: true
+      postgres-test-mind-castle:
+          condition: service_started
+    env_file:
+      - .env
+    volumes:
+      - ./:/app
+
+volumes:
+  postgres_data:
+  postgres_data_test:

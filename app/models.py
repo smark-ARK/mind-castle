@@ -13,6 +13,7 @@ class User(Base):
     username = Column(String, unique=True, nullable=False)
     email = Column(String, unique=True, nullable=False)
     password = Column(String, nullable=False)
+    notes = relationship("Note", back_populates="owner")
 
 
 class Note(Base):
@@ -27,6 +28,7 @@ class Note(Base):
         index=True,
     )
     owner_id = Column(Integer, ForeignKey("users.id"), nullable=False)
+    owner = relationship("User", back_populates="notes")
 
 
 class SharedNotes(Base):

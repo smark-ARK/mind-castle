@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Response
+from fastapi import APIRouter, Depends, HTTPException, status, Response, Request, Query
 from sqlalchemy.orm.session import Session
 from sqlalchemy import desc, or_
 from sqlalchemy.exc import IntegrityError
@@ -8,7 +8,13 @@ from typing import Optional, List
 from app.oauth2 import get_current_user
 
 
-from app.schemas import NoteResponse, NoteBase, ShareNote, ShareNoteResponse
+from app.schemas import (
+    NoteResponse,
+    NoteResponseWithParticipants,
+    NoteBase,
+    ShareNote,
+    ShareNoteResponse,
+)
 from app.database import get_db
 from app.models import Note, User, SharedNotes
 
@@ -17,6 +23,7 @@ router = APIRouter(prefix="/notes", tags=["Notes"])
 
 @router.get("", response_model=List[NoteResponse])
 async def list_notes(
+    request: Request,
     limit: Optional[int] = 10,
     skip: Optional[int] = 0,
     db: Session = Depends(get_db),
@@ -62,7 +69,7 @@ async def search_notes(
     return notes
 
 
-@router.get("/{id}", response_model=NoteResponse)
+@router.get("/{id}", response_model=NoteResponseWithParticipants)
 async def get_note(
     id: int,
     db: Session = Depends(get_db),
@@ -71,12 +78,47 @@ async def get_note(
     note = (
         db.query(Note).filter(Note.id == id, Note.owner_id == current_user.id).first()
     )
-    if not note:
+
+    if note:
+        participants = (
+            db.query(User, SharedNotes.permission)
+            .join(SharedNotes, SharedNotes.user_id == User.id)
+            .filter(SharedNotes.note_id == note.id)
+            .all()
+        )
+
+        participants_info = [
+            {"user": user, "permission": permission}
+            for user, permission in participants
+        ]
+        return {"note": note, "participants": participants_info}
+
+    # If the note is not owned by the current user, check if it's shared
+    shared_note = (
+        db.query(Note)
+        .join(SharedNotes, SharedNotes.note_id == Note.id)
+        .filter(Note.id == id, SharedNotes.user_id == current_user.id)
+        .first()
+    )
+    note = shared_note
+
+    if not shared_note:
         raise HTTPException(
-            detail=f"Note with id {id} Does not Exist",
+            detail=f"Note with id {id} is not shared with or owned by the current user",
             status_code=status.HTTP_404_NOT_FOUND,
         )
-    return note
+    participants = (
+        db.query(User, SharedNotes.permission)
+        .join(SharedNotes, SharedNotes.user_id == User.id)
+        .filter(SharedNotes.note_id == note.id)
+        .all()
+    )
+
+    participants_info = [
+        {"user": user, "permission": permission} for user, permission in participants
+    ]
+
+    return {"note": note, "participants": participants_info}
 
 
 @router.post("", response_model=NoteResponse)
@@ -102,14 +144,34 @@ async def update_note(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
-    note_query = db.query(Note).filter(Note.id == id, Note.owner_id == current_user.id)
-    note = note_query.first()
-    if not note:
+    note_query = db.query(Note).filter(Note.id == id)
+
+    if not note_query.first():
         raise HTTPException(
-            detail=f"Note with id {id} Does not Exist",
+            detail=f"Note with id {id} does not exist",
             status_code=status.HTTP_404_NOT_FOUND,
         )
-    updated_note = note_query.update(updated_note.dict(), synchronize_session=False)
+
+    # Check if the current user has access to the note
+    if note_query.first().owner_id != current_user.id:
+        # Check if the note is shared with the current user
+        shared_note = (
+            db.query(SharedNotes)
+            .filter(SharedNotes.note_id == id, SharedNotes.user_id == current_user.id)
+            .first()
+        )
+        if not shared_note or shared_note.permission != "edit":
+            raise HTTPException(
+                detail="You do not have permission to edit this note",
+                status_code=status.HTTP_403_FORBIDDEN,
+            )
+
+    # Prevent updating owner_id
+    if hasattr(updated_note, "owner_id"):
+        delattr(updated_note, "owner_id")
+
+    # Update the note
+    note_query.update(updated_note.dict(), synchronize_session=False)
     db.commit()
 
     return note_query.first()
@@ -261,3 +323,22 @@ async def update_permission(
             detail=f"Error updating permission: {str(e)}",
         )
     return {"note": note, "user": other_user, "permission": share_note.permission}
+
+
+@router.get("/shared/", response_model=List[NoteResponse])
+async def list_shared_notes(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    limit: Optional[int] = 10,
+    skip: Optional[int] = 0,
+):
+    shared_notes = (
+        db.query(Note)
+        .join(SharedNotes, SharedNotes.note_id == Note.id)
+        .filter(SharedNotes.user_id == current_user.id)
+        .order_by(desc(Note.created_at))
+        .limit(limit)
+        .offset(skip)
+        .all()
+    )
+    return shared_notes

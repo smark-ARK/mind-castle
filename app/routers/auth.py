@@ -4,7 +4,7 @@ from sqlalchemy.orm.session import Session
 from sqlalchemy.exc import IntegrityError
 
 
-from app.schemas import UserBase, UserCreate, ResponseToken
+from app.schemas import UserBase, UserCreate, ResponseToken, UserResponse
 from app.models import User
 from app.database import get_db
 from app.utils import hash_password, verify_password
@@ -14,7 +14,7 @@ from app.oauth2 import create_access_token, create_refresh_token, verify_refresh
 router = APIRouter(prefix="/auth", tags=["Authentication"])
 
 
-@router.post("/signup", response_model=UserBase)
+@router.post("/signup", response_model=UserResponse)
 async def signup(user: UserCreate, db: Session = Depends(get_db)):
     user.password = hash_password(plain_password=user.password)
     try:

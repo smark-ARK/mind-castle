@@ -43,7 +43,18 @@ class NoteBase(BaseModel):
 class NoteResponse(NoteBase):
     id: int
     owner_id: int
+    owner: UserResponse
     created_at: datetime
+
+
+class ParticipantInfo(BaseModel):
+    user: UserResponse
+    permission: str
+
+
+class NoteResponseWithParticipants(BaseModel):
+    note: NoteResponse
+    participants: List[ParticipantInfo]
 
 
 class Permissions(str, Enum):
