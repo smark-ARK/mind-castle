@@ -51,7 +51,7 @@ test_note_data = {"title": "Test Note", "detail": "Test Detail"}
 
 def test_signup():
     response_signup = client.post(
-        "/auth/signup",
+        "/api/auth/signup",
         json={
             "username": "testuser",
             "email": "test@example.com",
@@ -59,7 +59,7 @@ def test_signup():
         },
     )
     client.post(
-        "/auth/signup",
+        "/api/auth/signup",
         json={
             "username": "testuser2",
             "email": "test@example2.com",
@@ -73,7 +73,7 @@ def test_signup():
 
 def test_login():
     response_login = client.post(
-        "/auth/login", data={"username": "testuser", "password": "testpassword"}
+        "/api/auth/login", data={"username": "testuser", "password": "testpassword"}
     )
     assert response_login.status_code == 200
     token_data = response_login.json()
@@ -103,14 +103,16 @@ def test_create_note():
     note_data = {"title": "Test Note", "detail": "This is a test note."}
 
     response = client.post(
-        "/notes", json=note_data, headers={"Authorization": f"Bearer {access_token}"}
+        "/api/notes",
+        json=note_data,
+        headers={"Authorization": f"Bearer {access_token}"},
     )
 
     assert response.status_code == 200
 
 
 def test_list_notes_no_auth():
-    response_no_auth = client.get("/notes")
+    response_no_auth = client.get("/api/notes")
     assert response_no_auth.status_code == 401  # Unauthorized
 
 
@@ -121,7 +123,7 @@ def test_list_notes_with_auth():
     access_token = generate_valid_access_token(user_id, username)
     headers = {"Authorization": f"Bearer {access_token}"}
 
-    response_with_auth = client.get("/notes", headers=headers)
+    response_with_auth = client.get("/api/notes", headers=headers)
     assert response_with_auth.status_code == 200
     assert isinstance(response_with_auth.json(), list)
 
@@ -135,7 +137,7 @@ def test_get_note_with_auth():
 
     # Make a request to the /notes/{id} endpoint with a valid note ID and authentication
     note_id = 1
-    response = client.get(f"/notes/{note_id}", headers=headers)
+    response = client.get(f"/api/notes/{note_id}", headers=headers)
 
     # Check if the response status code is 200
     assert response.status_code == 200
@@ -161,7 +163,7 @@ def test_update_note():
     updated_data = {"title": "Updated Note", "detail": "This note has been updated."}
 
     response = client.put(
-        f"/notes/{note_id}",
+        f"/api/notes/{note_id}",
         json=updated_data,
         headers={"Authorization": f"Bearer {access_token}"},
     )
@@ -178,7 +180,7 @@ def test_delete_note():
     note_id = 1
 
     response = client.delete(
-        f"/notes/{note_id}", headers={"Authorization": f"Bearer {access_token}"}
+        f"/api/notes/{note_id}", headers={"Authorization": f"Bearer {access_token}"}
     )
 
     assert response.status_code == 204
@@ -193,7 +195,7 @@ def test_search_notes():
     search_query = "test"
 
     response = client.get(
-        f"/notes/search?q={search_query}",
+        f"/api/notes/search?q={search_query}",
         headers={"Authorization": f"Bearer {access_token}"},
     )
 
@@ -214,7 +216,7 @@ def test_share_note():
     share_data = {"user_id": other_user_id, "permission": permission}
 
     response = client.post(
-        f"/notes/{note_id}/share",
+        f"/api/notes/{note_id}/share",
         json=share_data,
         headers={"Authorization": f"Bearer {access_token}"},
     )
@@ -233,13 +235,13 @@ def test_list_shared_notes():
     # Share a note with the authenticated user for testing
     share_data = {"user_id": shared_user_id, "permission": "read_only"}
     client.post(
-        f"/notes/{shared_note_id}/share",
+        f"/api/notes/{shared_note_id}/share",
         json=share_data,
         headers={"Authorization": f"Bearer {access_token}"},
     )
 
     response = client.get(
-        "/notes/shared/", headers={"Authorization": f"Bearer {access_token}"}
+        "/api/notes/shared/", headers={"Authorization": f"Bearer {access_token}"}
     )
     assert response.status_code == 200
 
@@ -262,7 +264,9 @@ def test_update_note_by_owner():
     headers = {"Authorization": f"Bearer {access_token}"}
 
     updated_note_data = {"title": "Updated Title", "detail": "Updated Detail"}
-    response = client.put(f"/notes/{note_id}", json=updated_note_data, headers=headers)
+    response = client.put(
+        f"/api/notes/{note_id}", json=updated_note_data, headers=headers
+    )
 
     assert response.status_code == 200
     updated_note = response.json()
@@ -277,7 +281,9 @@ def test_update_note_by_shared_user_with_edit_permission():
     headers = {"Authorization": f"Bearer {access_token}"}
 
     updated_note_data = {"title": "Updated Title", "detail": "Updated Detail"}
-    response = client.put(f"/notes/{note_id}", json=updated_note_data, headers=headers)
+    response = client.put(
+        f"/api/notes/{note_id}", json=updated_note_data, headers=headers
+    )
 
     assert response.status_code == 200
     updated_note = response.json()
@@ -298,7 +304,7 @@ def test_update_permission():
     share_data = {"user_id": other_user_id, "permission": new_permission}
 
     response = client.put(
-        f"/notes/{note_id}/share",
+        f"/api/notes/{note_id}/share",
         json=share_data,
         headers={"Authorization": f"Bearer {access_token}"},
     )
@@ -313,7 +319,9 @@ def test_update_note_by_shared_user_without_edit_permission():
     headers = {"Authorization": f"Bearer {access_token}"}
 
     updated_note_data = {"title": "Updated Title", "detail": "Updated Detail"}
-    response = client.put(f"/notes/{note_id}", json=updated_note_data, headers=headers)
+    response = client.put(
+        f"/api/notes/{note_id}", json=updated_note_data, headers=headers
+    )
 
     assert (
         response.status_code == 403
@@ -327,7 +335,9 @@ def test_update_note_nonexistent_note():
     headers = {"Authorization": f"Bearer {access_token}"}
 
     updated_note_data = {"title": "Updated Title", "detail": "Updated Detail"}
-    response = client.put(f"/notes/{note_id}", json=updated_note_data, headers=headers)
+    response = client.put(
+        f"/api/notes/{note_id}", json=updated_note_data, headers=headers
+    )
 
     assert response.status_code == 404  # Not Found, as the note does not exist
 
@@ -342,7 +352,7 @@ def test_unshare_note():
     other_user_id = 2
 
     response = client.delete(
-        f"/notes/{note_id}/share?user_id={other_user_id}",
+        f"/api/notes/{note_id}/share?user_id={other_user_id}",
         headers={"Authorization": f"Bearer {access_token}"},
     )
 
