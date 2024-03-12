@@ -23,7 +23,6 @@ router = APIRouter(prefix="/api/notes", tags=["Notes"])
 
 @router.get("", response_model=List[NoteResponse])
 async def list_notes(
-    request: Request,
     limit: Optional[int] = 10,
     skip: Optional[int] = 0,
     db: Session = Depends(get_db),
@@ -191,6 +190,7 @@ async def delete_note(
             status_code=status.HTTP_404_NOT_FOUND,
         )
     note_query.delete(synchronize_session=False)
+    db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 
 
